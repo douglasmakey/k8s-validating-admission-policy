@@ -1,0 +1,7 @@
+apiVersion: admissionregistration.k8s.io/v1alpha1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: "force-ha-in-prod-for-all-binding"
+spec:
+  policyName: "force-ha-in-prod"
+  matchResources:

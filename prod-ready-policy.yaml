@@ -1,0 +1,37 @@
+apiVersion: admissionregistration.k8s.io/v1alpha1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: "prod-ready-policy"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:   ["apps"]
+      apiVersions: ["v1"]
+      operations:  ["CREATE", "UPDATE"]
+      resources:   ["deployments"]
+  validations:
+    - expression: "object.spec.template.spec.containers.all(c, !c.image.endsWith(':latest'))"
+      message: "cannot use the latest tag"
+    - expression: "object.spec.template.spec.containers.all(c, c.image.startsWith('myregistry.com/'))"
+      message: "image from an untrusted registry"
+    - expression: "has(object.metadata.labels.env) && object.metadata.labels.env in ['prod', 'production']"
+      message: "deployment should have an env and have to be prod or production"
+    - expression: |
+        object.spec.template.spec.containers.all(
+          c, has(c.resources) && has(c.resources.limits) && has(c.resources.limits.cpu)
+        )
+      message: "container does not have a cpu limit set"
+---
+apiVersion: admissionregistration.k8s.io/v1alpha1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: "prod-reay-policy-binding"
+spec:
+  policyName: "prod-reay-policy"
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+      - key: "env"
+        operator: "In"
+        values: [prod, production,]
